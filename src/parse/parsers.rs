@@ -5,11 +5,19 @@ use cssparser::{
     DeclarationParser, QualifiedRuleParser, RuleListParser,
     _cssparser_internal_to_lowercase, RGBA,
 };
-use tracing::warn;
 
 use crate::model::{
     ChatterinoMeta, CustomColors, Rule, RuleMap, RuleValue, Theme,
 };
+
+macro_rules! bail_rule {
+    ($name:ident) => {
+        match $name {
+            Ok(i) => i,
+            Err((e, _)) => return Err(e),
+        }
+    };
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum ParseError<'a> {
@@ -19,8 +27,6 @@ pub enum ParseError<'a> {
     MissingMetaItem(&'static str),
     #[error("'currentColor' isn't supported")]
     CurrentColorFound,
-    #[error("Expected a color or var(..)")]
-    ExpectedColorOrVar,
     #[error("Expected a @chatterino metadata block")]
     MissingMetaBlock,
     #[error("Found duplicate @chatterino metadata block")]
@@ -96,9 +102,9 @@ impl<'i> AtRuleParser<'i> for RegularRuleParser {
         _start: &cssparser::ParserState,
         input: &mut cssparser::Parser<'i, 't>,
     ) -> Result<Self::AtRule, cssparser::ParseError<'i, Self::Error>> {
-        let rules = DeclarationListParser::new(input, RegularRuleParser)
-            .filter_map(warn_about_invalid)
-            .collect();
+        let rules: Result<_, _> =
+            DeclarationListParser::new(input, RegularRuleParser).collect();
+        let rules = bail_rule!(rules);
         Ok((prelude, Rule::Nested(rules)))
     }
 }
@@ -143,17 +149,17 @@ impl<'i> QualifiedRuleParser<'i> for TopLevelParser {
     {
         match prelude {
             QualifiedType::Root => {
-                let color_map =
+                let color_map: Result<_, _> =
                     DeclarationListParser::new(input, RootBlockParser)
-                        .filter_map(warn_about_invalid)
                         .collect();
+                let color_map = bail_rule!(color_map);
                 Ok(TopLevelItem::Root(color_map))
             }
             QualifiedType::Regular(name) => {
-                let rules =
+                let rules: Result<_, _> =
                     DeclarationListParser::new(input, RegularRuleParser)
-                        .filter_map(warn_about_invalid)
                         .collect();
+                let rules = bail_rule!(rules);
                 Ok(TopLevelItem::Regular((name, Rule::Nested(rules))))
             }
         }
@@ -188,10 +194,8 @@ impl<'i> AtRuleParser<'i> for TopLevelParser {
     ) -> Result<Self::AtRule, cssparser::ParseError<'i, Self::Error>> {
         let mut author = None;
         let mut icon_set = None;
-        for item in DeclarationListParser::new(input, ChatterinoMetaParser)
-            .filter_map(warn_about_invalid)
-        {
-            match item {
+        for item in DeclarationListParser::new(input, ChatterinoMetaParser) {
+            match bail_rule!(item) {
                 ChatterinoMetaItem::Author(v) => author = Some(v),
                 ChatterinoMetaItem::IconSet(v) => icon_set = Some(v),
             }
@@ -273,25 +277,7 @@ fn parse_color<'i>(
         Ok(Color::CurrentColor) => {
             Err(input.new_custom_error(ParseError::CurrentColorFound))
         }
-        Err(e) => {
-            dbg!(e);
-            Err(input.new_custom_error(ParseError::ExpectedColorOrVar))
-        }
-    }
-}
-
-fn warn_about_invalid<Rule, Error>(
-    rule: Result<Rule, (cssparser::ParseError<Error>, &str)>,
-) -> Option<Rule>
-where
-    Error: std::fmt::Debug,
-{
-    match rule {
-        Ok(rule) => Some(rule),
-        Err((error, source)) => {
-            warn!(error = ?error, "Error parsing '{source}'");
-            None
-        }
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -307,10 +293,8 @@ pub fn parse<'i>(
 ) -> Result<Theme<'i>, cssparser::ParseError<'i, ParseError<'i>>> {
     let mut state = ThemeParserState::default();
 
-    for item in RuleListParser::new_for_stylesheet(input, TopLevelParser)
-        .filter_map(warn_about_invalid)
-    {
-        match item {
+    for item in RuleListParser::new_for_stylesheet(input, TopLevelParser) {
+        match bail_rule!(item) {
             TopLevelItem::Meta(meta) if state.meta.is_none() => {
                 state.meta = Some(meta);
             }

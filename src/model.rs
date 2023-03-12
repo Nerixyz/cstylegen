@@ -40,8 +40,8 @@ pub struct FlatTheme<'i> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FlattenError<'i> {
-    #[error("'{0}' was used but never defined anywhere")]
-    MissingColor(CowRcStr<'i>),
+    #[error("'{0}' was used in {1} but never defined anywhere.")]
+    MissingColor(CowRcStr<'i>, String),
 }
 
 impl<'i> Theme<'i> {
@@ -64,17 +64,17 @@ fn inner_flatten<'i>(
     for (name, rule) in rules {
         match rule {
             Rule::Value(value) => {
-                map.insert(
-                    combine_path(prefix, name),
-                    match value {
-                        RuleValue::ColorRef(name) => {
-                            *colors.get(name).ok_or_else(|| {
-                                FlattenError::MissingColor(name.clone())
-                            })?
-                        }
-                        RuleValue::Color(c) => *c,
-                    },
-                );
+                let path = combine_path(prefix, name);
+                let value = match value {
+                    RuleValue::ColorRef(name) => {
+                        let Some(color) = colors.get(name) else {
+                            return Err(FlattenError::MissingColor(name.clone(), path));
+                        };
+                        *color
+                    }
+                    RuleValue::Color(c) => *c,
+                };
+                map.insert(path, value);
             }
             Rule::Nested(nested) => {
                 inner_flatten(

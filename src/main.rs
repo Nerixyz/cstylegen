@@ -1,4 +1,5 @@
 mod combinator;
+mod errors;
 mod helper;
 mod layout;
 mod model;
@@ -47,7 +48,6 @@ enum Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    tracing_subscriber::fmt().init();
 
     match args {
         Args::Code {
@@ -73,8 +73,25 @@ fn generate_theme(
     let mut parser_input = ParserInput::new(&input);
     let mut parser = cssparser::Parser::new(&mut parser_input);
 
-    let parsed = parse::parse(&mut parser).unwrap();
-    let flat = parsed.flatten().unwrap();
+    let parsed = match parse::parse(&mut parser) {
+        Ok(p) => p,
+        Err(e) => {
+            errors::print_error_with_source(
+                input_file,
+                &input,
+                &errors::format_css_parse_error(&e),
+                &e.location,
+            );
+            std::process::exit(1)
+        }
+    };
+    let flat = match parsed.flatten() {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Failed to resolve values: {e}");
+            std::process::exit(1)
+        }
+    };
 
     let mut output_path = PathBuf::from(output_dir);
     match Path::new(input_file).file_stem() {
