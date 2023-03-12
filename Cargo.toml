@@ -2,8 +2,11 @@
 name = "cstylegen"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "GPL-2.0-or-later"
+repository = "https://github.com/Nerixyz/cstylegen"
+keywords = ["cli"]
+categories = ["command-line-utilities"]
+description = "A CLI to generate c2theme and C++ files."
 
 [dependencies]
 ahash = { version = "0.8.3", features = ["serde"] }

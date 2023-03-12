@@ -1,3 +1,5 @@
+#![deny(clippy::cargo)]
+
 mod combinator;
 mod errors;
 mod helper;
@@ -8,7 +10,7 @@ mod printer;
 
 use std::{
     ffi::{OsStr, OsString},
-    fs::{self},
+    fs,
     path::{Path, PathBuf},
 };
 
