@@ -7,6 +7,10 @@ There are two modes - `code` and `theme`. `code` generates a `GeneratedHeader.{c
 
 ## Installing
 
+You can download prebuilt binaries [from the releases](https://github.com/Nerixyz/cstylegen/releases).
+
+### Manual Build
+
 - Clone the repo.
 - Run `cargo instal --path .`.
 
