@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode-css-languageservice/main/docs/customData.schema.json",
+  "version": 1.1,
+  "atDirectives": [
+    { "name": "@nest", "description": "Nested block", "status": "nonstandard" },
+    { "name": "@chatterino", "description": "Chatterino metadata block", "status": "nonstandard" }
+  ]
+}
