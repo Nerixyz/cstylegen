@@ -2,7 +2,6 @@
 
 mod combinator;
 mod errors;
-mod helper;
 mod layout;
 mod model;
 mod parse;

@@ -9,7 +9,7 @@ pub fn generate_header(
     layout: &Layout,
 ) -> io::Result<()> {
     p.write_line("#include <QColor>")?;
-    p.write_line("#include <QString>")?;
+    p.write_line("#include <QByteArray>")?;
     p.write_line("")?;
 
     p.write_line("namespace chatterino::theme {")?;
@@ -37,7 +37,7 @@ pub fn generate_header(
     writeln!(p)?;
     writeln!(p, "protected:")?;
     p.indent();
-    writeln!(p, "bool setColor(const QLatin1String &name, QColor color);")?;
+    writeln!(p, "bool setColor(const QByteArray &name, QColor color);")?;
     writeln!(p, "void reset();")?;
     writeln!(p, "void applyChanges();")?;
     p.dedent();

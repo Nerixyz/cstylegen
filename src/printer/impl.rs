@@ -2,12 +2,11 @@ use std::io;
 
 use crate::{
     combinator::combine_path,
-    helper::Fork,
     layout::{FlatLayoutItem, Layout},
     model::FlatTheme,
 };
 
-use super::{key_matcher, Printer};
+use super::Printer;
 
 pub fn generate_impl(
     p: &mut Printer<impl io::Write>,
@@ -18,12 +17,14 @@ pub fn generate_impl(
     p.write_line("#include \"GeneratedTheme.hpp\"")?;
     p.write_line("#include <QColor>")?;
     p.write_line("#include <QString>")?;
+    p.write_line("#include <QByteArray>")?;
+    p.write_line("#include <QMap>")?;
     p.write_line("#include <cstring>")?;
     p.write_line("")?;
 
     p.write_line("namespace {")?;
     p.indent();
-    p.write_line("int getDataIndex(const QLatin1String &name);")?;
+    p.write_line("int getDataIndex(const QByteArray &name);")?;
     p.dedent();
     p.write_line("} //  namespace")?;
 
@@ -74,15 +75,12 @@ pub fn generate_impl(
         }
     }
 
-    let mut fork = Fork::new();
-    for (key, value) in paths.iter() {
-        fork.insert(key.as_bytes(), *value);
-    }
-
     p.dedent();
     p.write_line("}")?;
 
-    p.write_line("bool GeneratedTheme::setColor(const QLatin1String &name, QColor color) {")?;
+    p.write_line(
+        "bool GeneratedTheme::setColor(const QByteArray &name, QColor color) {",
+    )?;
     p.indent();
 
     p.write_line("auto idx = getDataIndex(name);")?;
@@ -96,7 +94,18 @@ pub fn generate_impl(
     p.write_line("} //  namespace chatterino::theme")?;
 
     p.write_line("namespace {")?;
-    key_matcher::print_key_matcher(p, &fork)?;
+    p.write_line("int getDataIndex(const QByteArray &name) {")?;
+    p.indent();
+    p.write_line("static const QMap<QByteArray, size_t> dataMap = {")?;
+    p.indent();
+    for (path, value) in paths {
+        writeln!(p, "{{\"{path}\", {value}}},")?;
+    }
+    p.dedent();
+    p.write_line("};")?;
+    p.write_line("return dataMap.value(name, -1);")?;
+    p.dedent();
+    p.write_line("}")?;
     p.write_line("} //  namespace")?;
 
     Ok(())

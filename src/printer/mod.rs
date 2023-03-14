@@ -2,7 +2,6 @@ use std::io;
 
 pub mod header;
 pub mod r#impl;
-pub mod key_matcher;
 pub mod theme;
 
 pub struct Printer<W> {
